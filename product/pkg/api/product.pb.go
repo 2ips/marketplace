@@ -322,10 +322,10 @@ const file_product_api_product_proto_rawDesc = "" +
 	"\x14ListProductsResponse\x12<\n" +
 	"\rpage_metadata\x18\x01 \x01(\v2\x15.product.PageMetadataH\x00R\fpageMetadata\x12,\n" +
 	"\aproduct\x18\x02 \x01(\v2\x10.product.ProductH\x00R\aproductB\t\n" +
-	"\apayload2\x9b\x01\n" +
-	"\x0eProductService\x12:\n" +
+	"\apayload2\xa6\x01\n" +
+	"\x0eProductService\x12E\n" +
 	"\n" +
-	"GetProduct\x12\x1a.product.GetProductRequest\x1a\x10.product.Product\x12M\n" +
+	"GetProduct\x12\x1a.product.GetProductRequest\x1a\x1b.product.GetProductResponse\x12M\n" +
 	"\fListProducts\x12\x1c.product.ListProductsRequest\x1a\x1d.product.ListProductsResponse0\x01B5Z3github.com/2ips/marketplace/product/pkg/api;productb\x06proto3"
 
 var (
@@ -355,7 +355,7 @@ var file_product_api_product_proto_depIdxs = []int32{
 	0, // 2: product.ListProductsResponse.product:type_name -> product.Product
 	1, // 3: product.ProductService.GetProduct:input_type -> product.GetProductRequest
 	3, // 4: product.ProductService.ListProducts:input_type -> product.ListProductsRequest
-	0, // 5: product.ProductService.GetProduct:output_type -> product.Product
+	2, // 5: product.ProductService.GetProduct:output_type -> product.GetProductResponse
 	4, // 6: product.ProductService.ListProducts:output_type -> product.ListProductsResponse
 	5, // [5:7] is the sub-list for method output_type
 	3, // [3:5] is the sub-list for method input_type
