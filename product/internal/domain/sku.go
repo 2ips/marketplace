@@ -9,7 +9,7 @@ type ErrInvalidSKU struct {
 }
 
 func (e *ErrInvalidSKU) Error() string {
-	return fmt.Sprintf("SKU must non zero, god %d", e.Value)
+	return fmt.Sprintf("SKU must non zero, got %d", e.Value)
 }
 
 func NewSKU(sku uint64) (SKU, error) {

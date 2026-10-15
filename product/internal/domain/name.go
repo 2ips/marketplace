@@ -18,11 +18,11 @@ type ErrNameTooLong struct {
 	Length int
 }
 
-func (e ErrNameEmpty) Error() string {
+func (e *ErrNameEmpty) Error() string {
 	return fmt.Sprintf("name must be non-empty, got %s", e.Value)
 }
 
-func (e ErrNameTooLong) Error() string {
+func (e *ErrNameTooLong) Error() string {
 	return fmt.Sprintf("name must be shorter than %d characters, got %d", MaxNameLength, e.Length)
 }
 
