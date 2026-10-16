@@ -16,7 +16,14 @@ generate-cart:
 	cd cart && go tool oapi-codegen -config oapi-codegen.yml api/cart.gen.yml
 	rm -f cart/api/cart.gen.yml
 
+.PHONY: run-all
+run-all: run-product run-cart
+
 .PHONY: run-product
 run-product:
 	cd product && go run ./cmd/server
 
+
+.PHONY: run-cart
+run-cart:
+	cd cart && go run ./cmd/server
