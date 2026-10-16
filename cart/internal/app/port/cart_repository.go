@@ -20,5 +20,5 @@ type CartRepository interface {
 }
 
 func (e *ErrUserNotFound) Error() string {
-	return fmt.Sprintf("cannot find user with ID %d", e.Value)
+	return fmt.Sprintf("cannot find user with ID %d", e.Value.Value())
 }
