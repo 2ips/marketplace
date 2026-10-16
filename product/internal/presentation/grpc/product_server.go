@@ -47,9 +47,9 @@ func (s *ProductServer) GetProduct(ctx context.Context, req *pb.GetProductReques
 }
 
 func (s *ProductServer) ListProducts(
-		req *pb.ListProductsRequest,
-		stream grpc.ServerStreamingServer[pb.ListProductsResponse],
-	) error {
+	req *pb.ListProductsRequest,
+	stream grpc.ServerStreamingServer[pb.ListProductsResponse],
+) error {
 	if req.GetPage() < 0 {
 		return status.Errorf(codes.InvalidArgument, "page must be positive, got %d", req.GetPage())
 	}
@@ -74,7 +74,7 @@ func (s *ProductServer) ListProducts(
 			"Products count must be at most %d, got %d",
 			math.MaxInt64,
 			res.TotalCount,
-			)
+		)
 	}
 
 	if res.TotalPages > math.MaxInt64 {
