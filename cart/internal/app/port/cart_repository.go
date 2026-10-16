@@ -15,8 +15,8 @@ type ErrUserNotFound struct {
 }
 
 type CartRepository interface {
-	Get(ctx context.Context, userID domain.UserID) (domain.Cart, error)
-	AddItem(ctx context.Context, user domain.UserID, item domain.Item) error
+	Get(ctx context.Context, userID domain.UserID) (*domain.Cart, error)
+	Save(ctx context.Context, cart *domain.Cart) error
 }
 
 func (e *ErrUserNotFound) Error() string {

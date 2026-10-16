@@ -15,7 +15,7 @@ type ErrProductNotFound struct {
 }
 
 type ProductProvider interface {
-	Get(ctx context.Context, sku domain.SKU) (domain.Item, error)
+	Get(ctx context.Context, sku domain.SKU) (*domain.Product, error)
 }
 
 func (e *ErrProductNotFound) Error() string {

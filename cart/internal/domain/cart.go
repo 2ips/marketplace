@@ -34,7 +34,7 @@ func (c *Cart) Items() []*Item {
 func (c *Cart) TotalPrice() (Price, error) {
 	var total uint64
 	for _, item := range c.items {
-		total += uint64(item.price.Value()) * uint64(item.count.Value())
+		total += uint64(item.product.price.Value()) * uint64(item.count.Value())
 		if total > math.MaxUint32 {
 			return Price{}, &ErrTotalPriceOverflow{Total: total}
 		}
@@ -45,7 +45,7 @@ func (c *Cart) TotalPrice() (Price, error) {
 
 func (c *Cart) AddItem(item *Item) error {
 	for _, existing := range c.items {
-		if existing.sku == item.sku {
+		if existing.product.sku == item.product.sku {
 			return existing.AddQuantity(item.count)
 		}
 	}
