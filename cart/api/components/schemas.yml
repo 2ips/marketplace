@@ -1,0 +1,60 @@
+UserID:
+  type: integer
+  format: int64
+  minimum: 1
+
+SKU:
+  type: integer
+  format: int64
+  minimum: 1
+
+Count:
+  type: integer
+  format: uint32
+  minimum: 1
+
+Price:
+  type: integer
+  format: uint32
+
+Name:
+  type: string
+  minLength: 1
+
+CartItem:
+  type: object
+  required: [sku, name, count, price]
+  properties:
+    sku:
+      $ref: '#/SKU'
+    name:
+      $ref: '#/Name'
+    count:
+      $ref: '#/Count'
+    price:
+      $ref: '#/Price'
+
+AddItemRequest:
+  type: object
+  required: [count]
+  properties:
+    count:
+      $ref: '#/Count'
+
+GetCartResponse:
+  type: object
+  required: [items, total_price]
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/CartItem'
+    total_price:
+      $ref: '#/Price'
+
+Error:
+  type: object
+  required: [message]
+  properties:
+    message:
+      type: string

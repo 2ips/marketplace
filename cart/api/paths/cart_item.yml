@@ -1,0 +1,25 @@
+parameters:
+  - $ref: '../components/parameters.yml#/UserID'
+  - $ref: '../components/parameters.yml#/SKU'
+post:
+  operationId: addItem
+  description: add item to user cart
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../components/schemas.yml#/AddItemRequest'
+  responses:
+    '200':
+      description: Item added to cart
+    '400':
+      $ref: '../components/errors.yml#/BadRequest'
+    '412':
+      description: Product does not exist in the catalog
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yml#/Error'
+    default:
+      $ref: '../components/errors.yml#/UnexpectedError'
