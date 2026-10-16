@@ -1,7 +1,13 @@
 package domain
 
-type Price uint32
+type Price struct {
+	value uint32
+}
 
 func NewPrice(price uint32) (Price, error) {
-	return Price(price), nil
+	return Price{value: price}, nil
+}
+
+func (p Price) Value() uint32 {
+	return p.value
 }

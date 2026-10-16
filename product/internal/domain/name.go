@@ -8,7 +8,9 @@ import (
 
 const MaxNameLength = 255
 
-type Name string
+type Name struct {
+	value string
+}
 
 type ErrNameEmpty struct {
 	Value string
@@ -30,13 +32,17 @@ func NewName(name string) (Name, error) {
 	name = strings.TrimSpace(name)
 
 	if name == "" {
-		return "", &ErrNameEmpty{Value: name}
+		return Name{}, &ErrNameEmpty{Value: name}
 	}
 
 	length := utf8.RuneCountInString(name)
 	if length > MaxNameLength {
-		return "", &ErrNameTooLong{Length: length}
+		return Name{}, &ErrNameTooLong{Length: length}
 	}
 
-	return Name(name), nil
+	return Name{value: name}, nil
+}
+
+func (n Name) Value() string {
+	return n.value
 }

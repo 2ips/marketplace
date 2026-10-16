@@ -2,7 +2,9 @@ package domain
 
 import "fmt"
 
-type SKU uint64
+type SKU struct {
+	value uint64
+}
 
 type ErrInvalidSKU struct {
 	Value uint64
@@ -14,8 +16,12 @@ func (e *ErrInvalidSKU) Error() string {
 
 func NewSKU(sku uint64) (SKU, error) {
 	if sku == 0 {
-		return 0, &ErrInvalidSKU{Value: sku}
+		return SKU{}, &ErrInvalidSKU{Value: sku}
 	}
 
-	return SKU(sku), nil
+	return SKU{value: sku}, nil
+}
+
+func (s SKU) Value() uint64 {
+	return s.value
 }

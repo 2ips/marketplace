@@ -22,5 +22,5 @@ type ProductRepository interface {
 }
 
 func (e *ErrProductNotFound) Error() string {
-	return fmt.Sprintf("cannot find product with SKU %d", e.Value)
+	return fmt.Sprintf("cannot find product with SKU %d", e.Value.Value())
 }
