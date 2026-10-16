@@ -34,7 +34,7 @@ func (uc *AddItem) Execute(ctx context.Context, req AddItemRequest) (*AddItemRes
 		return nil, fmt.Errorf("%w: %w", ErrAddItem, err)
 	}
 
-	item, err := domain.NewItem(*product, req.Count)
+	item, err := domain.NewItem(product, req.Count)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrAddItem, err)
 	}

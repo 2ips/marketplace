@@ -6,7 +6,7 @@ import (
 )
 
 type Item struct {
-	product Product
+	product *Product
 	count   Count
 }
 
@@ -18,14 +18,14 @@ func (e *ErrCountOverflow) Error() string {
 	return fmt.Sprintf("count must be at most %d, got %d", uint32(math.MaxUint32), e.Total)
 }
 
-func NewItem(product Product, count Count) (*Item, error) {
+func NewItem(product *Product, count Count) (*Item, error) {
 	return &Item{
 		product: product,
 		count:   count,
 	}, nil
 }
 
-func (i *Item) Product() Product {
+func (i *Item) Product() *Product {
 	return i.product
 }
 
