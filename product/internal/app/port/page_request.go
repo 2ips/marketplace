@@ -15,6 +15,15 @@ type ErrInvalidPageSize struct {
 	Value uint64
 }
 
+type ErrPageOutOfRange struct {
+	Value      uint64
+	TotalPages uint64
+}
+
+func (e *ErrPageOutOfRange) Error() string {
+	return fmt.Sprintf("page must be at most %d, got %d", e.TotalPages, e.Value)
+}
+
 func (e *ErrInvalidPage) Error() string {
 	return fmt.Sprintf("page must be non-zero, got %d", e.Value)
 }
@@ -41,4 +50,16 @@ func (p PageRequest) Page() uint64 {
 
 func (p PageRequest) PageSize() uint64 {
 	return p.pageSize
+}
+
+func (p PageRequest) Bounds(total uint64) (uint64, uint64, error) {
+	totalPages := (total + p.pageSize - 1) / p.pageSize
+	if p.page-1 >= totalPages {
+		return 0, 0, &ErrPageOutOfRange{Value: p.page, TotalPages: totalPages}
+	}
+
+	offset := (p.page - 1) * p.pageSize
+	end := min(offset+p.pageSize, total)
+
+	return offset, end, nil
 }
