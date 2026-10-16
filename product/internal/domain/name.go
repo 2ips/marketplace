@@ -23,7 +23,7 @@ func (e *ErrNameEmpty) Error() string {
 }
 
 func (e *ErrNameTooLong) Error() string {
-	return fmt.Sprintf("name must be shorter than %d characters, got %d", MaxNameLength, e.Length)
+	return fmt.Sprintf("name must be at most %d characters, got %d", MaxNameLength, e.Length)
 }
 
 func NewName(name string) (Name, error) {

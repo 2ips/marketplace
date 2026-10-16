@@ -16,11 +16,11 @@ type ErrInvalidPageSize struct {
 }
 
 func (e *ErrInvalidPage) Error() string {
-	return fmt.Sprintf("Page must non zero, got %d", e.Value)
+	return fmt.Sprintf("page must be non-zero, got %d", e.Value)
 }
 
 func (e *ErrInvalidPageSize) Error() string {
-	return fmt.Sprintf("Page size must non zero, got %d", e.Value)
+	return fmt.Sprintf("page size must be-non zero, got %d", e.Value)
 }
 
 func NewPageRequest(page uint64, pageSize uint64) (PageRequest, error) {
