@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package product;
+
+import "product/api/page.proto";
+
+option go_package = "github.com/2ips/marketplace/product/pkg/api;product";
+
+service ProductService {
+  rpc GetProduct(GetProductRequest) returns (GetProductResponse);
+  rpc ListProducts(ListProductsRequest) returns (stream ListProductsResponse);
+}
+
+message Product {
+  int64 sku = 1;
+  string name = 2;
+  int32 price = 3;
+}
+
+message GetProductRequest {
+  int64 sku = 1;
+}
+
+message GetProductResponse {
+  Product product = 1;
+}
+
+message ListProductsRequest {
+  int64 page = 1;
+  int64 page_size = 2;
+}
+
+message ListProductsResponse {
+  oneof payload {
+    PageMetadata page_metadata = 1;
+    Product product = 2;
+  }
+}

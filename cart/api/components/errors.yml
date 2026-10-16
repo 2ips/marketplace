@@ -1,0 +1,13 @@
+BadRequest:
+  description: Invalid request parameters or body
+  content:
+    application/json:
+      schema:
+        $ref: './schemas.yml#/Error'
+
+UnexpectedError:
+  description: Unexpected error
+  content:
+    application/json:
+      schema:
+        $ref: './schemas.yml#/Error'

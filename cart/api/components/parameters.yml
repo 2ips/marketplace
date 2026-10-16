@@ -1,0 +1,13 @@
+UserID:
+  name: user_id
+  in: path
+  required: true
+  schema:
+    $ref: './schemas.yml#/UserID'
+
+SKU:
+  name: sku
+  in: path
+  required: true
+  schema:
+    $ref: './schemas.yml#/SKU'

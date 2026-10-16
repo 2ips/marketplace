@@ -1,0 +1,12 @@
+openapi: 3.0.3
+
+info:
+  title: Cart API
+  version: 0.1.0
+
+paths:
+  /user/{user_id}/cart/{sku}:
+    $ref: './paths/cart_item.yml'
+
+  /user/{user_id}/cart:
+    $ref: './paths/cart.yml'
