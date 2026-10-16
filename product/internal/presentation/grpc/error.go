@@ -10,15 +10,15 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var (
-	notFound    *port.ErrProductNotFound
-	invalidSKU  *domain.ErrInvalidSKU
-	invalidPage *port.ErrInvalidPage
-	invalidSize *port.ErrInvalidPageSize
-	outOfRange  *port.ErrPageOutOfRange
-)
-
 func toGRPCError(err error) error {
+	var (
+		notFound    *port.ErrProductNotFound
+		invalidSKU  *domain.ErrInvalidSKU
+		invalidPage *port.ErrInvalidPage
+		invalidSize *port.ErrInvalidPageSize
+		outOfRange  *port.ErrPageOutOfRange
+	)
+
 	switch {
 	case errors.As(err, &notFound):
 		return status.Error(codes.NotFound, notFound.Error())
