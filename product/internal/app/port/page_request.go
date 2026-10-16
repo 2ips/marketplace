@@ -3,8 +3,8 @@ package port
 import "fmt"
 
 type PageRequest struct {
-	Page     uint64
-	PageSize uint64
+	page     uint64
+	pageSize uint64
 }
 
 type ErrInvalidPage struct {
@@ -32,5 +32,13 @@ func NewPageRequest(page uint64, pageSize uint64) (PageRequest, error) {
 		return PageRequest{}, &ErrInvalidPageSize{Value: pageSize}
 	}
 
-	return PageRequest{Page: page, PageSize: pageSize}, nil
+	return PageRequest{page: page, pageSize: pageSize}, nil
+}
+
+func (p PageRequest) Page() uint64 {
+	return p.page
+}
+
+func (p PageRequest) PageSize() uint64 {
+	return p.pageSize
 }

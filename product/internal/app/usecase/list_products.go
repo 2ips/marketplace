@@ -39,8 +39,8 @@ func (uc *ListProducts) Execute(ctx context.Context, req ListProductsRequest) (*
 
 	return &ListProductsResponse{
 		TotalCount: totalCount,
-		TotalPages: totalPages(totalCount, req.Page.PageSize),
-		Page:       req.Page.Page,
+		TotalPages: totalPages(totalCount, req.Page.PageSize()),
+		Page:       req.Page.Page(),
 		Products:   uc.products(ctx, req.Page),
 	}, nil
 }
