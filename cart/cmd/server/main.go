@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"net"
 	"net/http"
 
 	"github.com/2ips/marketplace/cart/internal/app/usecase"
@@ -20,11 +22,22 @@ func main() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
+	listen, err := net.Listen("tcp", config.HTTPListenAddr)
+	if err != nil {
+		log.Fatalf("Failed to start listener on %s: %v", config.HTTPListenAddr, err)
+	}
+
+	if err := run(config, listen); err != nil {
+		log.Fatalf("Failed to serve: %v", err)
+	}
+}
+
+func run(config config, listen net.Listener) error {
 	productClient, err := grpc.NewClient(
 		config.ProductGRPCAddr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		log.Fatalf("Failed to create product client for addr %s: %v", config.ProductGRPCAddr, err)
+		return fmt.Errorf("create product client for addr %s: %w", config.ProductGRPCAddr, err)
 	}
 	defer func(productClient *grpc.ClientConn) {
 		_ = productClient.Close()
@@ -40,11 +53,11 @@ func main() {
 
 	swaggerSpec, err := api.GetSpec()
 	if err != nil {
-		log.Fatalf("Failed to load swagger spec: %v", err)
+		return fmt.Errorf("load swagger spec: %w", err)
 	}
 	swaggerJSON, err := swaggerSpec.MarshalJSON()
 	if err != nil {
-		log.Fatalf("Failed to marshal swagger spec: %v", err)
+		return fmt.Errorf("marshal swagger spec: %w", err)
 	}
 
 	mux := http.NewServeMux()
@@ -52,14 +65,9 @@ func main() {
 	mux.Handle("GET /swagger.json", serveBytes("application/json", swaggerJSON))
 
 	handler := api.HandlerFromMux(api.NewStrictHandler(cartServer, nil), mux)
-	server := &http.Server{
-		Addr:    config.HTTPListenAddr,
-		Handler: handler,
-	}
+	server := &http.Server{Handler: handler}
 
-	if err := server.ListenAndServe(); err != nil {
-		log.Fatalf("Failed to serve: %v", err)
-	}
+	return server.Serve(listen)
 }
 
 func serveBytes(contentType string, body []byte) http.Handler {
