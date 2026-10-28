@@ -36,8 +36,9 @@ func toAddItemErrorResponse(err error) api.AddItemResponseObject {
 
 func toGetCartErrorResponse(err error) api.GetCartResponseObject {
 	var (
-		invalidUserID *domain.ErrInvalidUserID
-		userNotFound  *port.ErrUserNotFound
+		invalidUserID   *domain.ErrInvalidUserID
+		userNotFound    *port.ErrUserNotFound
+		productNotFound *port.ErrProductNotFound
 	)
 
 	switch {
@@ -45,6 +46,8 @@ func toGetCartErrorResponse(err error) api.GetCartResponseObject {
 		return api.GetCart400JSONResponse{Message: err.Error()}
 	case errors.As(err, &userNotFound):
 		return api.GetCart404JSONResponse{Message: userNotFound.Error()}
+	case errors.As(err, &productNotFound):
+		return api.GetCart412JSONResponse{Message: productNotFound.Error()}
 	default:
 		return api.GetCartdefaultJSONResponse{
 			StatusCode: http.StatusInternalServerError,

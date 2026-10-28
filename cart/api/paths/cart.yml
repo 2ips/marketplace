@@ -18,5 +18,11 @@ get:
         application/json:
           schema:
             $ref: '../components/schemas.yml#/Error'
+    '412':
+      description: Product does not exist
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yml#/Error'
     default:
       $ref: '../components/errors.yml#/UnexpectedError'

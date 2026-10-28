@@ -329,6 +329,20 @@ func (response GetCart404JSONResponse) VisitGetCartResponse(w http.ResponseWrite
 	return err
 }
 
+type GetCart412JSONResponse Error
+
+func (response GetCart412JSONResponse) VisitGetCartResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(412)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetCartdefaultJSONResponse struct {
 	Body       Error
 	StatusCode int
@@ -523,18 +537,18 @@ func (sh *strictHandler) AddItem(w http.ResponseWriter, r *http.Request, userId 
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,
