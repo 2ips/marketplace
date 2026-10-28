@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"os"
@@ -18,9 +19,20 @@ func main() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
+	listen, err := net.Listen("tcp", config.GRPCListenAddr)
+	if err != nil {
+		log.Fatalf("Failed to start listener on %s: %v", config.GRPCListenAddr, err)
+	}
+
+	if err := run(config, listen); err != nil {
+		log.Fatalf("Failed to serve: %v", err)
+	}
+}
+
+func run(config config, listen net.Listener) error {
 	productsFile, err := os.Open(config.ProductsJsonPath)
 	if err != nil {
-		log.Fatalf("Failed to open products json file %s: %v", config.ProductsJsonPath, err)
+		return fmt.Errorf("open products json file %s: %w", config.ProductsJsonPath, err)
 	}
 	defer func(productsFile *os.File) {
 		_ = productsFile.Close()
@@ -28,7 +40,7 @@ func main() {
 
 	productRepository, err := memory.NewProductRepository(productsFile)
 	if err != nil {
-		log.Fatalf("Failed to create product repository: %v", err)
+		return fmt.Errorf("create product repository: %w", err)
 	}
 
 	productServer := trasnsport.NewProductServer(
@@ -36,15 +48,8 @@ func main() {
 		usecase.NewListProducts(productRepository),
 	)
 
-	listen, err := net.Listen("tcp", config.GRPCListenAddr)
-	if err != nil {
-		log.Fatalf("Failed to start listener on %s: %v", config.GRPCListenAddr, err)
-	}
-
 	server := grpc.NewServer()
 	pb.RegisterProductServiceServer(server, productServer)
 
-	if err := server.Serve(listen); err != nil {
-		log.Fatalf("Failed to serve: %v", err)
-	}
+	return server.Serve(listen)
 }
