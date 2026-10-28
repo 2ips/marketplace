@@ -34,8 +34,8 @@ func main() {
 	cartRepository := memory.NewCartRepository()
 
 	cartServer := transport.NewCartServer(
-		usecase.NewAddItem(cartRepository, productProvider),
-		usecase.NewGetCart(cartRepository),
+		usecase.NewAddItem(cartRepository, productProvider, config.ProductGRPCTimeout),
+		usecase.NewGetCart(cartRepository, productProvider, config.ProductGRPCTimeout),
 	)
 
 	swaggerSpec, err := api.GetSpec()
