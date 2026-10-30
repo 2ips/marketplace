@@ -12,6 +12,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -21,9 +22,10 @@ import (
 	"github.com/oapi-codegen/runtime"
 )
 
-// AddItemRequest defines model for AddItemRequest.
-type AddItemRequest struct {
-	Count Count `json:"count"`
+// Cart defines model for Cart.
+type Cart struct {
+	Items      []CartItem `json:"items"`
+	TotalPrice Price      `json:"total_price"`
 }
 
 // CartItem defines model for CartItem.
@@ -42,14 +44,13 @@ type Error struct {
 	Message string `json:"message"`
 }
 
-// GetCartResponse defines model for GetCartResponse.
-type GetCartResponse struct {
-	Items      []CartItem `json:"items"`
-	TotalPrice Price      `json:"total_price"`
-}
-
 // Name defines model for Name.
 type Name = string
+
+// NewCartItem defines model for NewCartItem.
+type NewCartItem struct {
+	Count Count `json:"count"`
+}
 
 // Price defines model for Price.
 type Price = uint32
@@ -67,7 +68,560 @@ type BadRequest = Error
 type UnexpectedError = Error
 
 // AddItemJSONRequestBody defines body for AddItem for application/json ContentType.
-type AddItemJSONRequestBody = AddItemRequest
+type AddItemJSONRequestBody = NewCartItem
+
+// RequestEditorFn is the function signature for the RequestEditor callback function
+type RequestEditorFn func(ctx context.Context, req *http.Request) error
+
+// Doer performs HTTP requests.
+//
+// The standard http.Client implements this interface.
+type HttpRequestDoer interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
+// Client which conforms to the OpenAPI3 specification for this service.
+type Client struct {
+	// The endpoint of the server conforming to this interface, with scheme,
+	// https://api.deepmap.com for example. This can contain a path relative
+	// to the server, such as https://api.deepmap.com/dev-test, and all the
+	// paths in the swagger spec will be appended to the server.
+	Server string
+
+	// Doer for performing requests, typically a *http.Client with any
+	// customized settings, such as certificate chains.
+	Client HttpRequestDoer
+
+	// A list of callbacks for modifying requests which are generated before sending over
+	// the network.
+	RequestEditors []RequestEditorFn
+}
+
+// ClientOption allows setting custom parameters during construction
+type ClientOption func(*Client) error
+
+// Creates a new Client, with reasonable defaults
+func NewClient(server string, opts ...ClientOption) (*Client, error) {
+	// create a client with sane default values
+	client := Client{
+		Server: server,
+	}
+	// mutate client and add all optional params
+	for _, o := range opts {
+		if err := o(&client); err != nil {
+			return nil, err
+		}
+	}
+	// ensure the server URL always has a trailing slash
+	if !strings.HasSuffix(client.Server, "/") {
+		client.Server += "/"
+	}
+	// create httpClient, if not already present
+	if client.Client == nil {
+		client.Client = &http.Client{}
+	}
+	return &client, nil
+}
+
+// WithHTTPClient allows overriding the default Doer, which is
+// automatically created using http.Client. This is useful for tests.
+func WithHTTPClient(doer HttpRequestDoer) ClientOption {
+	return func(c *Client) error {
+		c.Client = doer
+		return nil
+	}
+}
+
+// WithRequestEditorFn allows setting up a callback function, which will be
+// called right before sending the request. This can be used to mutate the request.
+func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
+	return func(c *Client) error {
+		c.RequestEditors = append(c.RequestEditors, fn)
+		return nil
+	}
+}
+
+// The interface specification for the client above.
+type ClientInterface interface {
+
+	// GetCart performs a GET /user/{user_id}/cart (the `GetCart` operationId) request.
+	//
+	// Get user cart.
+	GetCart(ctx context.Context, userId UserID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AddItemWithBody performs a POST /user/{user_id}/cart/{sku} (the `AddItem` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// add item to user cart.
+	AddItemWithBody(ctx context.Context, userId UserID, sku SKU, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AddItem performs a POST /user/{user_id}/cart/{sku} (the `AddItem` operationId) request.
+	// Takes a body of the `application/json` content type.
+	//
+	// add item to user cart.
+	AddItem(ctx context.Context, userId UserID, sku SKU, body AddItemJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+}
+
+// GetCart performs a GET /user/{user_id}/cart (the `GetCart` operationId) request.
+//
+// Get user cart.
+func (c *Client) GetCart(ctx context.Context, userId UserID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetCartRequest(c.Server, userId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// AddItemWithBody performs a POST /user/{user_id}/cart/{sku} (the `AddItem` operationId) request,
+// with any type of body and a specified content type.
+//
+// add item to user cart.
+func (c *Client) AddItemWithBody(ctx context.Context, userId UserID, sku SKU, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddItemRequestWithBody(c.Server, userId, sku, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// AddItem performs a POST /user/{user_id}/cart/{sku} (the `AddItem` operationId) request.
+// Takes a body of the `application/json` content type.
+//
+// add item to user cart.
+func (c *Client) AddItem(ctx context.Context, userId UserID, sku SKU, body AddItemJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddItemRequest(c.Server, userId, sku, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// NewGetCartRequest constructs an http.Request for the GetCart method
+func NewGetCartRequest(server string, userId UserID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "user_id", userId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/user/%s/cart", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewAddItemRequest calls the generic AddItem builder with application/json body
+func NewAddItemRequest(server string, userId UserID, sku SKU, body AddItemJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewAddItemRequestWithBody(server, userId, sku, "application/json", bodyReader)
+}
+
+// NewAddItemRequestWithBody constructs an http.Request for the AddItem method, with any body, and a specified content type
+func NewAddItemRequestWithBody(server string, userId UserID, sku SKU, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "user_id", userId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "sku", sku, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/user/%s/cart/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+func (c *Client) applyEditors(ctx context.Context, req *http.Request, additionalEditors []RequestEditorFn) error {
+	for _, r := range c.RequestEditors {
+		if err := r(ctx, req); err != nil {
+			return err
+		}
+	}
+	for _, r := range additionalEditors {
+		if err := r(ctx, req); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// ClientWithResponses builds on ClientInterface to offer response payloads
+type ClientWithResponses struct {
+	ClientInterface
+}
+
+// NewClientWithResponses creates a new ClientWithResponses, which wraps
+// Client with return type handling
+func NewClientWithResponses(server string, opts ...ClientOption) (*ClientWithResponses, error) {
+	client, err := NewClient(server, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &ClientWithResponses{client}, nil
+}
+
+// WithBaseURL overrides the baseURL.
+func WithBaseURL(baseURL string) ClientOption {
+	return func(c *Client) error {
+		newBaseURL, err := url.Parse(baseURL)
+		if err != nil {
+			return err
+		}
+		c.Server = newBaseURL.String()
+		return nil
+	}
+}
+
+// ClientWithResponsesInterface is the interface specification for the client with responses above.
+type ClientWithResponsesInterface interface {
+
+	// GetCartWithResponse performs a GET /user/{user_id}/cart (the `GetCart` operationId) request.
+	//
+	// Get user cart.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	GetCartWithResponse(ctx context.Context, userId UserID, reqEditors ...RequestEditorFn) (*GetCartResponse, error)
+
+	// AddItemWithBodyWithResponse performs a POST /user/{user_id}/cart/{sku} (the `AddItem` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// add item to user cart.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	AddItemWithBodyWithResponse(ctx context.Context, userId UserID, sku SKU, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddItemResponse, error)
+
+	// AddItemWithResponse performs a POST /user/{user_id}/cart/{sku} (the `AddItem` operationId) request.
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// add item to user cart.
+	AddItemWithResponse(ctx context.Context, userId UserID, sku SKU, body AddItemJSONRequestBody, reqEditors ...RequestEditorFn) (*AddItemResponse, error)
+}
+
+type GetCartResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Cart
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *BadRequest
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *Error
+	// JSON412 the response for an HTTP 412 `application/json` response
+	JSON412 *Error
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *UnexpectedError
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetCartResponse) GetJSON200() *Cart {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r GetCartResponse) GetJSON400() *BadRequest {
+	return r.JSON400
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetCartResponse) GetJSON404() *Error {
+	return r.JSON404
+}
+
+// GetJSON412 returns the response for an HTTP 412 `application/json` response
+func (r GetCartResponse) GetJSON412() *Error {
+	return r.JSON412
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetCartResponse) GetJSONDefault() *UnexpectedError {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetCartResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetCartResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetCartResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetCartResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type AddItemResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *BadRequest
+	// JSON412 the response for an HTTP 412 `application/json` response
+	JSON412 *Error
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *UnexpectedError
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r AddItemResponse) GetJSON400() *BadRequest {
+	return r.JSON400
+}
+
+// GetJSON412 returns the response for an HTTP 412 `application/json` response
+func (r AddItemResponse) GetJSON412() *Error {
+	return r.JSON412
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r AddItemResponse) GetJSONDefault() *UnexpectedError {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r AddItemResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r AddItemResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AddItemResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r AddItemResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// GetCartWithResponse performs a GET /user/{user_id}/cart (the `GetCart` operationId) request.
+//
+// Get user cart.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) GetCartWithResponse(ctx context.Context, userId UserID, reqEditors ...RequestEditorFn) (*GetCartResponse, error) {
+	rsp, err := c.GetCart(ctx, userId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetCartResponse(rsp)
+}
+
+// AddItemWithBodyWithResponse performs a POST /user/{user_id}/cart/{sku} (the `AddItem` operationId) request,
+// with any type of body and a specified content type.
+//
+// add item to user cart.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) AddItemWithBodyWithResponse(ctx context.Context, userId UserID, sku SKU, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddItemResponse, error) {
+	rsp, err := c.AddItemWithBody(ctx, userId, sku, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAddItemResponse(rsp)
+}
+
+// AddItemWithResponse performs a POST /user/{user_id}/cart/{sku} (the `AddItem` operationId) request.
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// add item to user cart.
+func (c *ClientWithResponses) AddItemWithResponse(ctx context.Context, userId UserID, sku SKU, body AddItemJSONRequestBody, reqEditors ...RequestEditorFn) (*AddItemResponse, error) {
+	rsp, err := c.AddItem(ctx, userId, sku, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAddItemResponse(rsp)
+}
+
+// ParseGetCartResponse parses an HTTP response from a GetCartWithResponse call
+func ParseGetCartResponse(rsp *http.Response) (*GetCartResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetCartResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Cart
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 412:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON412 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseAddItemResponse parses an HTTP response from a AddItemWithResponse call
+func ParseAddItemResponse(rsp *http.Response) (*AddItemResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AddItemResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 200:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 412:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON412 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -287,7 +841,7 @@ type GetCartResponseObject interface {
 	VisitGetCartResponse(w http.ResponseWriter) error
 }
 
-type GetCart200JSONResponse GetCartResponse
+type GetCart200JSONResponse Cart
 
 func (response GetCart200JSONResponse) VisitGetCartResponse(w http.ResponseWriter) error {
 
@@ -537,18 +1091,18 @@ func (sh *strictHandler) AddItem(w http.ResponseWriter, r *http.Request, userId 
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

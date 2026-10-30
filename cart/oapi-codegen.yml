@@ -2,6 +2,7 @@ package: api
 output: pkg/api/cart.gen.go
 generate:
   models: true
+  client: true
   std-http-server: true
   strict-server: true
   embedded-spec: true

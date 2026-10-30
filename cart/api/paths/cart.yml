@@ -9,7 +9,7 @@ get:
       content:
         application/json:
           schema:
-            $ref: '../components/schemas.yml#/GetCartResponse'
+            $ref: '../components/schemas.yml#/Cart'
     '400':
       $ref: '../components/errors.yml#/BadRequest'
     '404':
