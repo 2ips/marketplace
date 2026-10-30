@@ -34,14 +34,14 @@ CartItem:
     price:
       $ref: '#/Price'
 
-AddItemRequest:
+NewCartItem:
   type: object
   required: [count]
   properties:
     count:
       $ref: '#/Count'
 
-GetCartResponse:
+Cart:
   type: object
   required: [items, total_price]
   properties:

@@ -23,7 +23,26 @@ run-all: run-product run-cart
 run-product:
 	cd product && go run ./cmd/server
 
-
 .PHONY: run-cart
 run-cart:
 	cd cart && go run ./cmd/server
+
+.PHONY: test
+test: test-product test-cart
+
+.PHONY: test-product
+test-product:
+	cd product && go test ./...
+
+.PHONY: test-cart
+test-cart:
+	cd cart && go test ./...
+
+.PHONY: test-race
+test-race:
+	cd product && go test -race ./...
+	cd cart && go test -race ./...
+
+.PHONY: test-api
+test-api:
+	cd test && go test -v -count=1 -tags=api ./test/

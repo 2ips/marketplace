@@ -9,7 +9,7 @@ post:
     content:
       application/json:
         schema:
-          $ref: '../components/schemas.yml#/AddItemRequest'
+          $ref: '../components/schemas.yml#/NewCartItem'
   responses:
     '200':
       description: Item added to cart

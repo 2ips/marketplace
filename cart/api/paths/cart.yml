@@ -9,11 +9,17 @@ get:
       content:
         application/json:
           schema:
-            $ref: '../components/schemas.yml#/GetCartResponse'
+            $ref: '../components/schemas.yml#/Cart'
     '400':
       $ref: '../components/errors.yml#/BadRequest'
     '404':
       description: Cart does not exist or is empty
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yml#/Error'
+    '412':
+      description: Product does not exist
       content:
         application/json:
           schema:

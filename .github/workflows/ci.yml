@@ -19,17 +19,66 @@ jobs:
           cache-dependency-path: |
             cart/go.sum
             product/go.sum
+            test/go.sum
 
       - name: Gofmt
         run: |
-          unformatted=$(gofmt -l cart product)
+          unformatted=$(gofmt -l cart product test)
           if [ -n "$unformatted" ]; then
             echo "$unformatted"
             exit 1
           fi
 
       - name: Vet
-        run: go vet ./cart/... ./product/...
+        run: |
+          go vet ./cart/... ./product/...
+          go vet -tags=api ./test/...
 
       - name: Build
         run: go build ./cart/... ./product/...
+
+      - name: Unit tests
+        run: make test-race
+
+  api-test:
+    runs-on: ubuntu-latest
+    needs: build-test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.work
+          cache: true
+          cache-dependency-path: |
+            cart/go.sum
+            product/go.sum
+            test/go.sum
+
+      - name: Build servers
+        run: |
+          go build -o bin/product ./product/cmd/server
+          go build -o bin/cart ./cart/cmd/server
+
+      - name: Start servers
+        run: |
+          (cd product && ../bin/product > ../product.log 2>&1 &)
+          ./bin/cart > cart.log 2>&1 &
+
+      - name: Wait for servers
+        run: |
+          for port in 50051 8080; do
+            timeout 30 bash -c "until nc -z localhost $port; do sleep 0.5; done" \
+              || { echo "port $port not ready"; exit 1; }
+          done
+
+      - name: API tests
+        run: make test-api
+
+      - name: Server logs
+        if: failure()
+        run: |
+          cat product.log || true
+          cat cart.log    || true

@@ -8,7 +8,7 @@ import (
 	"github.com/2ips/marketplace/cart/pkg/api"
 )
 
-func toCartItem(item *domain.Item) (api.CartItem, error) {
+func toCartItem(item *domain.PricedItem) (api.CartItem, error) {
 	product := item.Product()
 
 	if product.SKU().Value() > math.MaxInt64 {
