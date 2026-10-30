@@ -38,6 +38,11 @@ test-product:
 test-cart:
 	cd cart && go test ./...
 
+.PHONY: test-race
+test-race:
+	cd product && go test -race ./...
+	cd cart && go test -race ./...
+
 .PHONY: test-api
 test-api:
 	cd test && go test -v -count=1 -tags=api ./test/
